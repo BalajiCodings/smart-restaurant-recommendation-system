@@ -1,0 +1,85 @@
+"Tasty finds, effortless tracking!"
+
+Prompt for Frontend UI (React + Vite + TailwindCSS)
+"Design a modern, user-friendly UI for a restaurant recommendation website called TastyTrack. The website helps users find the best restaurants nearby in Chennai based on reviews and ratings.
+
+UI Features:
+✅ Homepage:
+
+A hero section with a search bar where users can enter their location (e.g., ‘T. Nagar, Chennai’).
+A visually appealing static Chennai map with restaurant markers.
+✅ Restaurant List:
+
+A grid or list view displaying top restaurants with:
+Name
+Cuisine Type (South Indian, Chinese, etc.)
+Ratings & Reviews
+Address
+A filter system to sort by:
+Highest Rating
+Most Reviewed
+Cuisine Type
+✅ Restaurant Details Page:
+
+Detailed restaurant info page with:
+Restaurant image
+Description
+Reviews & Ratings Section
+User-generated feedback submission form
+✅ Color Theme & Styling:
+
+A vibrant and modern theme using shades of pink, violet, and white.
+Clean UI with soft rounded edges, smooth animations, and a mobile-responsive layout.
+✅ Tech Stack:
+
+ReactJS (ViteJS) + TailwindCSS
+Static Google Map Image for Chennai
+Local JSON data for restaurants (for now)
+
+
+Prompt:
+
+Design a modern and visually appealing restaurant recommendation website called TastyTrack using ReactJS (ViteJS) + Tailwind CSS. The website should have a sleek and intuitive UI with a vibrant color scheme (preferably pink or violet-themed).
+
+Main Features:
+Homepage
+
+A search bar allowing users to find nearby restaurants based on location.
+Display top-rated restaurants dynamically based on reviews, ratings, and popularity.
+A hero section with an engaging tagline: "Tasty finds, effortless tracking!"
+An interactive Google Maps API integration showing restaurant locations.
+Restaurant Listings Page
+
+A filter & sort option for users to choose restaurants based on cuisine, pricing, ratings, and distance.
+A visually engaging card-based layout displaying restaurant names, ratings, images, and user reviews.
+Restaurant Details Page
+
+A dedicated page for each restaurant showing:
+Reviews & ratings aggregated from Swiggy, Zomato, and Google.
+A user-friendly review submission section allowing users to add feedback.
+Sentiment-based highlighted reviews (e.g., “Most Loved Dish”, “Best for Families”).
+Location embedded on Google Maps.
+User Dashboard (for logged-in users)
+
+Personalized recommendations based on past reviews and preferences.
+A list of previously reviewed restaurants and saved favorites.
+Login/Signup Page
+
+Allow authentication with Google, email/password.
+A seamless signup/login flow with a beautiful and minimalist design.
+Design Preferences:
+Use Tailwind CSS for styling, ensuring a responsive and mobile-friendly layout.
+Implement smooth animations (Framer Motion recommended) for a dynamic UI experience.
+Keep a clean and clutter-free UI, emphasizing usability and speed.
+
+
+
+Abstract:
+TastyTrack is a smart restaurant recommendation system designed to help users discover the best nearby restaurants in Chennai based on ratings, reviews, and user feedback. Using a static map of Chennai, the platform allows users to search for restaurants, view top-rated suggestions, and explore detailed insights, including cuisine types, customer reviews, and addresses. The system aggregates restaurant data from online sources and provides a seamless, user-friendly interface to enhance the dining experience. Users can also submit their own reviews, contributing to a community-driven recommendation system.
+
+Tech Stack Used:
+✅ Frontend: ReactJS (ViteJS), TailwindCSS, TypeScript
+✅ Backend: Node.js, Express.js
+✅ Database: MongoDB
+✅ APIs & Features: Static Google Map for Chennai, Manual Data Aggregation, User Review System
+✅ Deployment: Vercel (Frontend), Render (Backend)
