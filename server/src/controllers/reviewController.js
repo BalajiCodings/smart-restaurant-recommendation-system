@@ -27,7 +27,10 @@ export const addReview = async (req, res, next) => {
     // Prevent duplicate review
     const existing = await Review.findOne({ restaurant: restaurantId, user: req.user.id });
     if (existing) {
-      return res.status(400).json({ message: "You already reviewed this restaurant." });
+      return res.status(400).json({ 
+        success: false,
+        message: "You already reviewed this restaurant." 
+      });
     }
 
     const review = await Review.create({
@@ -44,8 +47,9 @@ export const addReview = async (req, res, next) => {
     await updateRestaurantRating(restaurantId);
 
     res.status(201).json({
+      success: true,
       message: "Review added successfully",
-      review,
+      data: { review }
     });
   } catch (err) {
     next(err);
@@ -63,7 +67,10 @@ export const editReview = async (req, res, next) => {
     });
 
     if (!review) {
-      return res.status(404).json({ message: "Review not found" });
+      return res.status(404).json({ 
+        success: false,
+        message: "Review not found" 
+      });
     }
 
     review.rating = rating ?? review.rating;
@@ -73,8 +80,9 @@ export const editReview = async (req, res, next) => {
     await updateRestaurantRating(review.restaurant);
 
     res.status(200).json({
+      success: true,
       message: "Review updated successfully",
-      review,
+      data: { review }
     });
   } catch (err) {
     next(err);
@@ -90,7 +98,10 @@ export const deleteReview = async (req, res, next) => {
     });
 
     if (!review) {
-      return res.status(404).json({ message: "Review not found" });
+      return res.status(404).json({ 
+        success: false,
+        message: "Review not found" 
+      });
     }
 
     await Restaurant.findByIdAndUpdate(review.restaurant, {
@@ -99,7 +110,10 @@ export const deleteReview = async (req, res, next) => {
 
     await updateRestaurantRating(review.restaurant);
 
-    res.status(200).json({ message: "Review deleted successfully" });
+    res.status(200).json({ 
+      success: true,
+      message: "Review deleted successfully" 
+    });
   } catch (err) {
     next(err);
   }

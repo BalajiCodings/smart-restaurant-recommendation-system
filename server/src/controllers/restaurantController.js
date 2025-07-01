@@ -14,10 +14,19 @@ export const getRestaurants = async (req, res, next) => {
     ]);
 
     res.status(200).json({
-      total,
-      page,
-      totalPages: Math.ceil(total / limit),
-      restaurants,
+      success: true,
+      message: "Restaurants fetched successfully",
+      data: {
+        restaurants,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+          hasNextPage: page < Math.ceil(total / limit),
+          hasPrevPage: page > 1
+        }
+      }
     });
   } catch (err) {
     next(err);
@@ -32,10 +41,17 @@ export const getRestaurantById = async (req, res, next) => {
       .lean();
 
     if (!restaurant) {
-      return res.status(404).json({ message: "Restaurant not found" });
+      return res.status(404).json({ 
+        success: false,
+        message: "Restaurant not found" 
+      });
     }
 
-    res.status(200).json(restaurant);
+    res.status(200).json({
+      success: true,
+      message: "Restaurant fetched successfully",
+      data: { restaurant }
+    });
   } catch (err) {
     next(err);
   }
@@ -55,8 +71,9 @@ export const createRestaurant = async (req, res, next) => {
     });
 
     res.status(201).json({
+      success: true,
       message: "Restaurant created successfully",
-      restaurant,
+      data: { restaurant }
     });
   } catch (err) {
     next(err);
@@ -66,17 +83,43 @@ export const createRestaurant = async (req, res, next) => {
 // ✅ GET /api/restaurants/search?q=query
 export const searchRestaurants = async (req, res, next) => {
   try {
-    const { q } = req.query;
+    const { q, cuisine, location } = req.query;
+    
     if (!q || q.trim().length === 0) {
-      return res.status(400).json({ message: "Search query cannot be empty" });
+      return res.status(400).json({ 
+        success: false,
+        message: "Search query cannot be empty" 
+      });
     }
 
-    const regex = new RegExp(q, "i");
-    const results = await Restaurant.find({
-      $or: [{ name: regex }, { cuisine: regex }],
-    }).lean();
+    const searchRegex = new RegExp(q.trim(), "i");
+    const searchQuery = {
+      $or: [
+        { name: searchRegex }, 
+        { cuisine: searchRegex },
+        { description: searchRegex }
+      ],
+    };
 
-    res.status(200).json({ count: results.length, results });
+    // Add additional filters if provided
+    if (cuisine) {
+      searchQuery.cuisine = new RegExp(cuisine, "i");
+    }
+    if (location) {
+      searchQuery.address = new RegExp(location, "i");
+    }
+
+    const results = await Restaurant.find(searchQuery).lean();
+
+    res.status(200).json({ 
+      success: true,
+      message: "Search completed successfully",
+      data: {
+        query: q,
+        count: results.length,
+        restaurants: results
+      }
+    });
   } catch (err) {
     next(err);
   }

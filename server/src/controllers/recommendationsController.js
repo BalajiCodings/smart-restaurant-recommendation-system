@@ -8,7 +8,12 @@ export const getRecommendations = async (req, res, next) => {
   try {
     // 1. Get logged-in user with favorites
     const user = await User.findById(req.user.id).populate("favorites");
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        message: "User not found" 
+      });
+    }
 
     // 2. Gather cuisines: from favorites, reviews, and user preferences
     const favoriteCuisines = user.favorites.map((r) => r.cuisine);
@@ -37,18 +42,33 @@ export const getRecommendations = async (req, res, next) => {
 
     // 5. Recommend based on top cuisines
     let recommendations = [];
+    const limit = parseInt(req.query.limit) || 10;
 
     if (sortedCuisines.length > 0) {
       recommendations = await Restaurant.find({
         cuisine: { $in: sortedCuisines },
         _id: { $nin: [...excludeIds] },
-      }).limit(10);
+      })
+      .sort({ rating: -1 })
+      .limit(limit)
+      .lean();
     } else {
       // Fallback: top-rated restaurants
-      recommendations = await Restaurant.find().sort({ rating: -1 }).limit(10);
+      recommendations = await Restaurant.find()
+        .sort({ rating: -1 })
+        .limit(limit)
+        .lean();
     }
 
-    res.status(200).json({ recommendations });
+    res.status(200).json({ 
+      success: true,
+      message: "Recommendations fetched successfully",
+      data: {
+        recommendations,
+        basedOn: sortedCuisines.length > 0 ? "user_preferences" : "top_rated",
+        preferredCuisines: sortedCuisines.slice(0, 3)
+      }
+    });
   } catch (err) {
     next(err);
   }

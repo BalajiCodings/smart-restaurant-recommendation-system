@@ -7,7 +7,9 @@ import { validate } from "../middleware/validate.js";
 
 const router = express.Router();
 
+// ✅ Order matters: specific routes before parameterized ones
 router.get("/search", searchRestaurants);
+router.get("/recommendations", authenticate, getRecommendations);
 router.get("/", getRestaurants);
 router.get("/:id", getRestaurantById);
 router.post(
@@ -15,13 +17,12 @@ router.post(
   authenticate,
   requireRole("admin"),
   [
-    body("name").notEmpty(),
-    body("cuisine").notEmpty(),
-    body("address").notEmpty(),
+    body("name").notEmpty().withMessage("Restaurant name is required"),
+    body("cuisine").notEmpty().withMessage("Cuisine type is required"),
+    body("address").notEmpty().withMessage("Address is required"),
   ],
   validate,
   createRestaurant
 );
-router.get("/recommendations", authenticate, getRecommendations);
 
 export default router;

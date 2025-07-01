@@ -12,18 +12,42 @@ import { errorHandler } from "./middleware/errorMiddleware.js";
 dotenv.config();
 const app = express();
 
-// ✅ CORS
-const allowedOrigins = ["http://localhost:3000", "https://yourfrontend.com"];
+// ✅ CORS Configuration for Vercel deployment
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001", 
+  "https://your-nextjs-app.vercel.app", // Replace with your actual Vercel domain
+  /https:\/\/.*\.vercel\.app$/, // Allow all Vercel preview deployments
+  process.env.FRONTEND_URL // Add from environment variable
+].filter(Boolean);
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Allow requests with no origin (mobile apps, Postman, etc.)
+      if (!origin) return callback(null, true);
+      
+      // Check if origin matches allowed patterns
+      const isAllowed = allowedOrigins.some(allowedOrigin => {
+        if (typeof allowedOrigin === 'string') {
+          return allowedOrigin === origin;
+        }
+        if (allowedOrigin instanceof RegExp) {
+          return allowedOrigin.test(origin);
+        }
+        return false;
+      });
+      
+      if (isAllowed) {
         callback(null, true);
       } else {
-        callback(new Error("CORS not allowed"));
+        console.log(`CORS blocked origin: ${origin}`);
+        callback(new Error("CORS policy violation"));
       }
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   })
 );
 
@@ -37,11 +61,24 @@ const limiter = rateLimit({
 app.use("/api", limiter);
 
 // ✅ Routes
-app.get("/", (req, res) => res.send("🍽️ TastyTrack API Running"));
+app.get("/", (req, res) => res.json({ 
+  message: "🍽️ TastyTrack API Running", 
+  version: "1.0.0",
+  endpoints: {
+    auth: "/api/auth",
+    users: "/api/users", 
+    restaurants: "/api/restaurants",
+    reviews: "/api/reviews"
+  }
+}));
+
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/restaurants", restaurantRoutes);
 app.use("/api/reviews", reviewRoutes);
+
+// Health check endpoint for Vercel
+app.get("/health", (req, res) => res.json({ status: "OK", timestamp: new Date().toISOString() }));
 
 // ✅ Error Middleware
 app.use(errorHandler);
