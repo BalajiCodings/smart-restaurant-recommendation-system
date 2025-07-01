@@ -16,7 +16,8 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001", 
-  "https://your-nextjs-app.vercel.app", // Replace with your actual Vercel domain
+  "https://tasty-treat.vercel.app", // Main Vercel production domain
+  /https:\/\/tasty-treat.*\.vercel\.app$/, // Allow all Vercel preview deployments for this project
   /https:\/\/.*\.vercel\.app$/, // Allow all Vercel preview deployments
   process.env.FRONTEND_URL // Add from environment variable
 ].filter(Boolean);
