@@ -1,8 +1,7 @@
-// src/controllers/reviewController.js
 import { Review } from "../models/Review.js";
 import { Restaurant } from "../models/Restaurant.js";
 
-// ✅ Utility to recalculate restaurant ratings
+
 const updateRestaurantRating = async (restaurantId) => {
   const restaurant = await Restaurant.findById(restaurantId).populate("reviews");
 
@@ -18,13 +17,13 @@ const updateRestaurantRating = async (restaurantId) => {
   }
 };
 
-// ✅ POST /api/reviews/:restaurantId
+
 export const addReview = async (req, res, next) => {
   try {
     const { rating, comment } = req.body;
     const restaurantId = req.params.restaurantId;
 
-    // Prevent duplicate review
+    
     const existing = await Review.findOne({ restaurant: restaurantId, user: req.user.id });
     if (existing) {
       return res.status(400).json({ 
@@ -56,7 +55,7 @@ export const addReview = async (req, res, next) => {
   }
 };
 
-// ✅ PUT /api/reviews/:reviewId
+
 export const editReview = async (req, res, next) => {
   try {
     const { rating, comment } = req.body;
@@ -89,7 +88,7 @@ export const editReview = async (req, res, next) => {
   }
 };
 
-// ✅ DELETE /api/reviews/:reviewId
+
 export const deleteReview = async (req, res, next) => {
   try {
     const review = await Review.findOneAndDelete({

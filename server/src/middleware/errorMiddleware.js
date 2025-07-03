@@ -2,7 +2,6 @@ export const errorHandler = (err, req, res, next) => {
   let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
   let message = err.message;
 
-  // Handle specific MongoDB errors
   if (err.name === 'CastError') {
     statusCode = 400;
     message = 'Invalid resource ID';
@@ -18,7 +17,6 @@ export const errorHandler = (err, req, res, next) => {
     message = Object.values(err.errors).map(val => val.message).join(', ');
   }
 
-  // CORS errors
   if (err.message.includes('CORS')) {
     statusCode = 403;
     message = 'CORS policy violation';

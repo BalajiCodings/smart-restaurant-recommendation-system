@@ -1,7 +1,5 @@
-// src/controllers/restaurantController.js
 import { Restaurant } from "../models/Restaurant.js";
 
-// ✅ GET /api/restaurants
 export const getRestaurants = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -33,7 +31,6 @@ export const getRestaurants = async (req, res, next) => {
   }
 };
 
-// ✅ GET /api/restaurants/:id
 export const getRestaurantById = async (req, res, next) => {
   try {
     const restaurant = await Restaurant.findById(req.params.id)
@@ -57,7 +54,6 @@ export const getRestaurantById = async (req, res, next) => {
   }
 };
 
-// ✅ POST /api/restaurants  (admin only)
 export const createRestaurant = async (req, res, next) => {
   try {
     const { name, cuisine, address, image, description } = req.body;
@@ -80,7 +76,7 @@ export const createRestaurant = async (req, res, next) => {
   }
 };
 
-// ✅ GET /api/restaurants/search?q=query
+
 export const searchRestaurants = async (req, res, next) => {
   try {
     const { q, cuisine, location } = req.query;
@@ -101,7 +97,6 @@ export const searchRestaurants = async (req, res, next) => {
       ],
     };
 
-    // Add additional filters if provided
     if (cuisine) {
       searchQuery.cuisine = new RegExp(cuisine, "i");
     }

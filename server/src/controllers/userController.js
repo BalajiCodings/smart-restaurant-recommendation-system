@@ -2,7 +2,7 @@ import { User } from "../models/User.js";
 import { Review } from "../models/Review.js";
 import bcrypt from "bcryptjs";
 
-// ✅ GET /api/users/dashboard
+
 export const getUserDashboard = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id).populate("favorites");
@@ -25,7 +25,7 @@ export const getUserDashboard = async (req, res, next) => {
   }
 };
 
-// ✅ POST /api/users/favorites/:restaurantId
+
 export const addFavorite = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
@@ -44,7 +44,7 @@ export const addFavorite = async (req, res, next) => {
   }
 };
 
-// ✅ DELETE /api/users/favorites/:restaurantId
+
 export const removeFavorite = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
@@ -63,7 +63,7 @@ export const removeFavorite = async (req, res, next) => {
   }
 };
 
-// ✅ GET /api/users/favorites
+
 export const getFavorites = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id).populate("favorites");
@@ -79,7 +79,7 @@ export const getFavorites = async (req, res, next) => {
   }
 };
 
-// ✅ GET /api/users/profile
+
 export const getProfile = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id).populate("favorites");
@@ -96,7 +96,6 @@ export const getProfile = async (req, res, next) => {
   }
 };
 
-// ✅ PUT /api/users/preferences/cuisines
 export const updatePreferredCuisines = async (req, res, next) => {
   try {
     const { preferredCuisines } = req.body;
@@ -116,7 +115,7 @@ export const updatePreferredCuisines = async (req, res, next) => {
   }
 };
 
-// ✅ GET /api/users/reviews
+
 export const getMyReviews = async (req, res, next) => {
   try {
     const reviews = await Review.find({ user: req.user.id }).populate("restaurant");
@@ -127,7 +126,7 @@ export const getMyReviews = async (req, res, next) => {
   }
 };
 
-// ✅ GET /api/users/admin/all
+
 export const getAllUsers = async (req, res, next) => {
   try {
     const users = await User.find().select("-password").lean();
@@ -142,7 +141,7 @@ export const getAllUsers = async (req, res, next) => {
   }
 };
 
-// ✅ PUT /api/users/change-password
+
 export const changePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;

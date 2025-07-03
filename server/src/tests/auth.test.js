@@ -1,4 +1,3 @@
-// tests/auth.test.js
 import request from "supertest";
 import app from "../src/server.js";
 import { User } from "../src/models/User.js";

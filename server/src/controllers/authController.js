@@ -1,9 +1,7 @@
-// src/controllers/authController.js
 import { validationResult } from "express-validator";
 import { User } from "../models/User.js";
 import { generateToken, verifyToken } from "../utils/jwt.js";
 
-// ✅ Register
 export const register = async (req, res, next) => {
   try {
     const errors = validationResult(req);
@@ -46,7 +44,6 @@ export const register = async (req, res, next) => {
   }
 };
 
-// ✅ Login
 export const login = async (req, res, next) => {
   try {
     const errors = validationResult(req);
@@ -88,7 +85,6 @@ export const login = async (req, res, next) => {
   }
 };
 
-// ✅ Refresh Token
 export const refresh = (req, res, next) => {
   try {
     const { token } = req.body;

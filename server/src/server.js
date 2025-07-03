@@ -12,23 +12,23 @@ import { errorHandler } from "./middleware/errorMiddleware.js";
 dotenv.config();
 const app = express();
 
-// ✅ CORS Configuration for Vercel deployment
+
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001", 
-  "https://tasty-treat.vercel.app", // Main Vercel production domain
-  /https:\/\/tasty-treat.*\.vercel\.app$/, // Allow all Vercel preview deployments for this project
-  /https:\/\/.*\.vercel\.app$/, // Allow all Vercel preview deployments
-  process.env.FRONTEND_URL // Add from environment variable
+  "https://tasty-treat.vercel.app", 
+  /https:\/\/tasty-treat.*\.vercel\.app$/, 
+  /https:\/\/.*\.vercel\.app$/, 
+  process.env.FRONTEND_URL 
 ].filter(Boolean);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, Postman, etc.)
+      
       if (!origin) return callback(null, true);
       
-      // Check if origin matches allowed patterns
+      
       const isAllowed = allowedOrigins.some(allowedOrigin => {
         if (typeof allowedOrigin === 'string') {
           return allowedOrigin === origin;
@@ -54,14 +54,12 @@ app.use(
 
 app.use(express.json());
 
-// ✅ Rate Limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
 });
 app.use("/api", limiter);
 
-// ✅ Routes
 app.get("/", (req, res) => res.json({ 
   message: "🍽️ TastyTrack API Running", 
   version: "1.0.0",
@@ -78,13 +76,13 @@ app.use("/api/users", userRoutes);
 app.use("/api/restaurants", restaurantRoutes);
 app.use("/api/reviews", reviewRoutes);
 
-// Health check endpoint for Vercel
+
 app.get("/health", (req, res) => res.json({ status: "OK", timestamp: new Date().toISOString() }));
 
-// ✅ Error Middleware
+
 app.use(errorHandler);
 
-// ✅ Connect DB & Start Server
+
 const PORT = process.env.PORT || 5000;
 
 if (process.env.NODE_ENV !== "test") {

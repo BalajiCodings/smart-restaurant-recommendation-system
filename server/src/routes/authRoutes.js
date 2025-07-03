@@ -1,11 +1,10 @@
-// src/routes/authRoutes.js
 import express from "express";
 import { body } from "express-validator";
 import { register, login, refresh } from "../controllers/authController.js";
 
 const router = express.Router();
 
-// ✅ Register route
+
 router.post(
   "/register",
   [
@@ -16,7 +15,7 @@ router.post(
   register
 );
 
-// ✅ Login route
+
 router.post(
   "/login",
   [
@@ -26,7 +25,7 @@ router.post(
   login
 );
 
-// ✅ Refresh token route
+
 router.post("/refresh", refresh);
 
 export default router;

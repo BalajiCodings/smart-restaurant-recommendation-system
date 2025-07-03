@@ -1,4 +1,4 @@
-// src/routes/userRoutes.js
+
 import express from "express";
 import {
   getUserDashboard,
@@ -16,7 +16,6 @@ import { authenticate, requireRole } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// 🧑‍ User routes
 router.get("/dashboard", authenticate, getUserDashboard);
 router.get("/profile", authenticate, getProfile);
 router.get("/favorites", authenticate, getFavorites);
@@ -26,7 +25,7 @@ router.put("/preferences/cuisines", authenticate, updatePreferredCuisines);
 router.get("/reviews", authenticate, getMyReviews);
 router.put("/change-password", authenticate, changePassword);
 
-// 👨‍💼 Admin-only route
+
 router.get("/admin/all", authenticate, requireRole("admin"), getAllUsers);
 
 export default router;
