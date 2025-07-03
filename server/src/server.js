@@ -2,7 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
-import connectDB from "./config/db.js"; // ✅ NEW
+import connectDB from "./config/db.js"; 
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import restaurantRoutes from "./routes/restaurantRoutes.js";
@@ -61,7 +61,7 @@ const limiter = rateLimit({
 app.use("/api", limiter);
 
 app.get("/", (req, res) => res.json({ 
-  message: "🍽️ TastyTrack API Running", 
+  message: "TastyTrack API Running", 
   version: "1.0.0",
   endpoints: {
     auth: "/api/auth",
@@ -88,7 +88,7 @@ const PORT = process.env.PORT || 5000;
 if (process.env.NODE_ENV !== "test") {
   connectDB().then(() => {
     app.listen(PORT, () =>
-      console.log(`🚀 Server running at http://localhost:${PORT}`)
+      console.log(`Server running at http://localhost:${PORT}`)
     );
   });
 }
