@@ -8,7 +8,7 @@ import { useAuth } from "@/components/auth-provider"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Star, Heart, MapPin, DollarSign } from "lucide-react"
+import { Star, Heart, MapPin, DollarSign, Leaf, Gift } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface Restaurant {
@@ -21,6 +21,15 @@ interface Restaurant {
   reviewCount?: number
   priceRange?: string
   image?: string
+  
+  // Swiggy data fields
+  numberOfRatings?: string
+  averagePrice?: string
+  numberOfOffers?: number
+  offerNames?: string[]
+  area?: string
+  isPureVeg?: boolean
+  location?: string
 }
 
 interface RestaurantCardProps {
@@ -99,28 +108,85 @@ export function RestaurantCard({ restaurant }: RestaurantCardProps) {
     }
   }
 
+  // Generate restaurant image based on cuisine type
+  const getRestaurantImage = (name: string, cuisine: string) => {
+    const cuisineImages = {
+      italian: "pizza-margherita-pasta-italian-food",
+      chinese: "chinese-food-dumplings-noodles",
+      mexican: "tacos-mexican-food-restaurant",
+      indian: "indian-curry-spices-restaurant",
+      american: "burger-fries-american-diner",
+      japanese: "sushi-japanese-restaurant-food",
+      thai: "thai-food-pad-thai-restaurant",
+      french: "french-cuisine-fine-dining-restaurant",
+      default: "restaurant-interior-dining-food"
+    }
+    
+    const cuisineKey = cuisine.toLowerCase() as keyof typeof cuisineImages
+    const imageQuery = cuisineImages[cuisineKey] || cuisineImages.default
+    
+    // Use restaurant name hash to ensure consistent images
+    const nameHash = name.split('').reduce((a, b) => a + b.charCodeAt(0), 0)
+    const imageId = (nameHash % 100) + 1
+    
+    return `https://images.unsplash.com/photo-${1500000000000 + imageId}?w=400&h=300&fit=crop&auto=format&q=80&${imageQuery}`
+  }
+
   return (
     <Link href={`/restaurants/${restaurant._id}`}>
       <Card className="h-full group overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-500 bg-white rounded-2xl transform hover:-translate-y-2">
-        {/* Image Placeholder with Gradient */}
-        <div className="relative h-48 bg-gradient-to-br from-orange-400 via-red-400 to-pink-400 overflow-hidden">
-          <div className="absolute inset-0 bg-black/20"></div>
-          <div className="absolute top-4 left-4">
+        {/* Restaurant Image */}
+        <div className="relative h-48 overflow-hidden">
+          <img
+            src={restaurant.image || getRestaurantImage(restaurant.name, restaurant.cuisine)}
+            alt={restaurant.name}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            onError={(e) => {
+              // Fallback to a generic restaurant image
+              const target = e.target as HTMLImageElement
+              target.src = `https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop&auto=format&q=80`
+            }}
+          />
+          
+          {/* Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-300"></div>
+          
+          {/* Cuisine Badge */}
+          <div className="absolute top-4 left-4 flex flex-wrap gap-2">
             <Badge 
               variant="secondary" 
-              className="bg-white/90 text-gray-800 backdrop-blur-sm border-0 font-medium px-3 py-1 rounded-full"
+              className="bg-white/95 text-gray-800 backdrop-blur-sm border-0 font-medium px-3 py-1 rounded-full shadow-lg"
             >
               {restaurant.cuisine}
             </Badge>
+            {restaurant.isPureVeg && (
+              <Badge 
+                variant="secondary" 
+                className="bg-green-100/95 text-green-800 backdrop-blur-sm border-0 font-medium px-3 py-1 rounded-full shadow-lg flex items-center gap-1"
+              >
+                <Leaf className="h-3 w-3" />
+                Veg
+              </Badge>
+            )}
           </div>
+          
+          {/* Rating Badge */}
+          <div className="absolute top-4 right-4 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1 shadow-lg">
+            <Star className="h-3 w-3 text-yellow-500 fill-current" />
+            <span className="text-sm font-semibold text-gray-800">
+              {restaurant.rating?.toFixed(1) || "0.0"}
+            </span>
+          </div>
+          
+          {/* Favorite Button */}
           {user && (
-            <div className="absolute top-4 right-4">
+            <div className="absolute bottom-4 right-4">
               <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={toggleFavorite} 
                 disabled={loading} 
-                className="bg-white/90 hover:bg-white backdrop-blur-sm rounded-full w-10 h-10 transition-all duration-300 hover:scale-110"
+                className="bg-white/95 hover:bg-white backdrop-blur-sm rounded-full w-10 h-10 transition-all duration-300 hover:scale-110 shadow-lg"
               >
                 <Heart 
                   className={`h-5 w-5 transition-colors duration-300 ${
@@ -130,33 +196,38 @@ export function RestaurantCard({ restaurant }: RestaurantCardProps) {
               </Button>
             </div>
           )}
-          {/* Decorative Elements */}
-          <div className="absolute bottom-0 right-0 w-20 h-20 bg-white/10 rounded-full transform translate-x-10 translate-y-10"></div>
-          <div className="absolute top-0 left-0 w-16 h-16 bg-white/10 rounded-full transform -translate-x-8 -translate-y-8"></div>
+          
+          {/* Price Range */}
+          <div className="absolute bottom-4 left-4">
+            <div className="flex items-center text-white bg-black/50 backdrop-blur-sm rounded-full px-3 py-1">
+              <DollarSign className="h-3 w-3 mr-1" />
+              <span className="font-medium text-sm">{getPriceSymbol(restaurant.priceRange)}</span>
+            </div>
+          </div>
         </div>
 
         <CardHeader className="pb-3">
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex justify-between items-start">
               <h3 className="font-bold text-xl text-gray-900 group-hover:text-orange-600 transition-colors duration-300 line-clamp-1">
                 {restaurant.name}
               </h3>
-              <div className="flex items-center text-sm text-gray-600 bg-gray-100 rounded-full px-2 py-1 ml-2">
-                <DollarSign className="h-3 w-3 mr-1" />
-                <span className="font-medium">{getPriceSymbol(restaurant.priceRange)}</span>
-              </div>
             </div>
             
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1">
                 {renderStars(restaurant.rating)}
-                <span className="text-sm font-semibold text-gray-700 ml-1">
-                  {restaurant.rating?.toFixed(1) || "0.0"}
-                </span>
               </div>
-              <span className="text-sm text-gray-500 bg-gray-50 px-3 py-1 rounded-full">
-                {restaurant.reviewCount || 0} review{(restaurant.reviewCount || 0) !== 1 ? "s" : ""}
-              </span>
+              <div className="text-right">
+                <span className="text-sm text-gray-500 bg-gray-50 px-3 py-1 rounded-full">
+                  {restaurant.numberOfRatings || `${restaurant.reviewCount || 0} review${(restaurant.reviewCount || 0) !== 1 ? "s" : ""}`}
+                </span>
+                {restaurant.averagePrice && (
+                  <div className="text-xs text-gray-600 mt-1 font-medium">
+                    ₹{restaurant.averagePrice}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -170,10 +241,30 @@ export function RestaurantCard({ restaurant }: RestaurantCardProps) {
             <div className="flex items-center justify-center w-8 h-8 bg-orange-100 rounded-full">
               <MapPin className="h-4 w-4 text-orange-600" />
             </div>
-            <span className="text-sm text-gray-700 truncate flex-1 font-medium">
-              {restaurant.address}
-            </span>
+            <div className="flex-1">
+              <span className="text-sm text-gray-700 truncate block font-medium">
+                {restaurant.area && restaurant.location 
+                  ? `${restaurant.area}, ${restaurant.location}`
+                  : restaurant.address
+                }
+              </span>
+              {restaurant.location && restaurant.area && (
+                <span className="text-xs text-gray-500">
+                  {restaurant.location}
+                </span>
+              )}
+            </div>
           </div>
+
+          {/* Offers */}
+          {restaurant.numberOfOffers && restaurant.numberOfOffers > 0 && (
+            <div className="flex items-center gap-2 p-2 bg-orange-50 rounded-lg border border-orange-100">
+              <Gift className="h-4 w-4 text-orange-600" />
+              <span className="text-sm text-orange-700 font-medium">
+                {restaurant.numberOfOffers} offer{restaurant.numberOfOffers !== 1 ? 's' : ''} available
+              </span>
+            </div>
+          )}
 
           {/* Hover Effect Indicator */}
           <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-center">

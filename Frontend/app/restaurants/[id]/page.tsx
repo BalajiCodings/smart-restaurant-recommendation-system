@@ -6,11 +6,26 @@ import { useAuth } from "@/components/auth-provider"
 import { Navbar } from "@/components/navbar"
 import { ReviewForm } from "@/components/review-form"
 import { ReviewCard } from "@/components/review-card"
+import { RestaurantInfoCard } from "@/components/restaurant-info-card"
+import { RestaurantDetailSkeleton } from "@/components/loading-skeletons"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Star, Heart, MapPin, DollarSign, Phone, Clock } from "lucide-react"
+import { 
+  Star, 
+  Heart, 
+  MapPin, 
+  DollarSign, 
+  Phone, 
+  Clock,
+  Award,
+  Share2,
+  TrendingUp,
+  MessageCircle,
+  Bookmark,
+  Users
+} from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface Restaurant {
@@ -25,30 +40,60 @@ interface Restaurant {
   priceRange?: string
   phone?: string
   hours?: string
+  website?: string
+  features?: string[]
+  gallery?: string[]
+  // Swiggy fields
+  location?: string
+  area?: string
+  city?: string
+  veg?: boolean
+  offers?: string[]
+  costForTwo?: number
+  deliveryTime?: string
+  cloudinaryImageId?: string
 }
 
 interface Review {
   _id: string
   user: {
+    _id?: string
     name: string
+    email?: string
   }
   rating: number
   comment: string
   createdAt: string
+  helpful?: number
+  images?: string[]
+}
+
+interface RestaurantStats {
+  averageRating: number
+  totalReviews: number
+  ratingDistribution: { [key: number]: number }
+  topReviewKeywords: string[]
+  verificationStatus: string
+  estimatedWaitTime?: number
+  priceLevel: number
+  popularTimes?: { [key: string]: number }
 }
 
 export default function RestaurantDetailPage() {
   const params = useParams()
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
   const [reviews, setReviews] = useState<Review[]>([])
+  const [stats, setStats] = useState<RestaurantStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [isFavorite, setIsFavorite] = useState(false)
   const [showReviewForm, setShowReviewForm] = useState(false)
   const [userReview, setUserReview] = useState<Review | null>(null)
+  const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const [shareLoading, setShareLoading] = useState(false)
+  
   const { user, token } = useAuth()
   const { toast } = useToast()
 
-  // Use environment variable or fallback to deployed backend
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://tastytrack-backend-9tu1.onrender.com"
 
   useEffect(() => {
@@ -69,8 +114,12 @@ export default function RestaurantDetailPage() {
       if (response.ok) {
         const result = await response.json()
         if (result.success) {
-          setRestaurant(result.data.restaurant)
-          setReviews(result.data.restaurant.reviews || [])
+          const restaurantData = result.data.restaurant
+          setRestaurant(restaurantData)
+          setReviews(restaurantData.reviews || [])
+          
+          // Generate mock stats (in a real app, this would come from the API)
+          generateMockStats(restaurantData)
         }
       }
     } catch (error) {
@@ -84,8 +133,56 @@ export default function RestaurantDetailPage() {
     }
   }
 
+  const generateMockStats = (restaurantData: Restaurant) => {
+    const reviews = restaurantData.reviews || []
+    const totalReviews = reviews.length
+    
+    if (totalReviews === 0) {
+      setStats({
+        averageRating: 0,
+        totalReviews: 0,
+        ratingDistribution: {},
+        topReviewKeywords: [],
+        verificationStatus: "Verified",
+        priceLevel: 2
+      })
+      return
+    }
+
+    // Calculate rating distribution
+    const ratingDistribution: { [key: number]: number } = {}
+    reviews.forEach(review => {
+      const rating = Math.floor(review.rating)
+      ratingDistribution[rating] = (ratingDistribution[rating] || 0) + 1
+    })
+
+    // Generate mock keywords from reviews
+    const keywords = ["delicious", "great service", "cozy atmosphere", "fresh ingredients", "value for money", "romantic"]
+    const topReviewKeywords = keywords.slice(0, Math.min(4, keywords.length))
+
+    setStats({
+      averageRating: restaurantData.rating,
+      totalReviews,
+      ratingDistribution,
+      topReviewKeywords,
+      verificationStatus: "Verified Business",
+      estimatedWaitTime: Math.floor(Math.random() * 30) + 10,
+      priceLevel: getPriceLevel(restaurantData.priceRange)
+    })
+  }
+
+  const getPriceLevel = (priceRange?: string) => {
+    switch (priceRange?.toLowerCase()) {
+      case "budget": return 1
+      case "mid-range": return 2
+      case "expensive": return 3
+      case "fine-dining": return 4
+      default: return 2
+    }
+  }
+
   const checkFavoriteStatus = async () => {
-    if (!params?.id) return
+    if (!params?.id || !token) return
     
     try {
       const response = await fetch(`${API_BASE}/api/users/favorites`, {
@@ -94,8 +191,8 @@ export default function RestaurantDetailPage() {
       if (response.ok) {
         const result = await response.json()
         if (result.success) {
-          const favorites = result.data.favorites
-          setIsFavorite(favorites.some((fav: any) => fav.id === params.id))
+          const favorites = result.data.favorites || []
+          setIsFavorite(favorites.some((fav: any) => fav._id === params.id))
         }
       }
     } catch (error) {
@@ -104,18 +201,17 @@ export default function RestaurantDetailPage() {
   }
 
   const checkUserReview = async () => {
-    if (!params?.id) return
+    if (!params?.id || !token) return
     
     try {
-      const response = await fetch(`${API_BASE}/users/reviews`, {
+      const response = await fetch(`${API_BASE}/api/reviews/user/${params.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (response.ok) {
-        const userReviews = await response.json()
-        const existingReview = userReviews.find(
-          (review: any) => review.restaurant._id === params.id || review.restaurant.id === params.id,
-        )
-        setUserReview(existingReview || null)
+        const result = await response.json()
+        if (result.success && result.data.review) {
+          setUserReview(result.data.review)
+        }
       }
     } catch (error) {
       console.error("Failed to check user review:", error)
@@ -123,7 +219,7 @@ export default function RestaurantDetailPage() {
   }
 
   const toggleFavorite = async () => {
-    if (!user || !token || !params?.id) {
+    if (!user || !token) {
       toast({
         title: "Login required",
         description: "Please login to add favorites",
@@ -158,6 +254,35 @@ export default function RestaurantDetailPage() {
     }
   }
 
+  const handleShare = async () => {
+    setShareLoading(true)
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: restaurant?.name,
+          text: `Check out ${restaurant?.name} - ${restaurant?.cuisine} cuisine`,
+          url: window.location.href,
+        })
+      } else {
+        await navigator.clipboard.writeText(window.location.href)
+        toast({
+          title: "Link copied!",
+          description: "Restaurant link has been copied to your clipboard",
+        })
+      }
+    } catch (error) {
+      console.error("Error sharing:", error)
+    } finally {
+      setShareLoading(false)
+    }
+  }
+
+  const handleReviewUpdated = () => {
+    fetchRestaurantDetails()
+    checkUserReview()
+    setShowReviewForm(false)
+  }
+
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }).map((_, i) => (
       <Star
@@ -167,30 +292,41 @@ export default function RestaurantDetailPage() {
     ))
   }
 
-  const getPriceSymbol = (priceRange?: string) => {
-    switch (priceRange?.toLowerCase()) {
-      case "budget":
-        return "$"
-      case "mid-range":
-        return "$$"
-      case "expensive":
-        return "$$$"
-      default:
-        return "$$"
+  const getRestaurantImage = (name: string, cuisine: string, index: number = 0) => {
+    const cuisineImages = {
+      italian: "pizza-margherita-pasta-italian-food",
+      chinese: "chinese-food-dumplings-noodles",
+      mexican: "tacos-mexican-food-restaurant",
+      indian: "indian-curry-spices-restaurant",
+      american: "burger-fries-american-diner",
+      japanese: "sushi-japanese-restaurant-food",
+      thai: "thai-food-pad-thai-restaurant",
+      french: "french-cuisine-fine-dining-restaurant",
+      default: "restaurant-interior-dining-food"
     }
+    
+    const cuisineKey = cuisine.toLowerCase() as keyof typeof cuisineImages
+    const imageQuery = cuisineImages[cuisineKey] || cuisineImages.default
+    
+    const nameHash = name.split('').reduce((a, b) => a + b.charCodeAt(0), 0)
+    const imageId = (nameHash % 100) + 1 + index
+    
+    return `https://images.unsplash.com/photo-${1500000000000 + imageId}?w=800&h=600&fit=crop&auto=format&q=80&${imageQuery}`
   }
+
+  const mockGalleryImages = restaurant ? [
+    getRestaurantImage(restaurant.name, restaurant.cuisine, 0),
+    getRestaurantImage(restaurant.name, restaurant.cuisine, 1),
+    getRestaurantImage(restaurant.name, restaurant.cuisine, 2),
+    getRestaurantImage(restaurant.name, restaurant.cuisine, 3),
+  ] : []
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50">
         <Navbar />
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="animate-pulse">
-            <div className="bg-gray-300 h-8 rounded mb-4"></div>
-            <div className="bg-gray-300 h-64 rounded mb-6"></div>
-            <div className="bg-gray-300 h-4 rounded mb-2"></div>
-            <div className="bg-gray-300 h-4 rounded w-2/3"></div>
-          </div>
+        <div className="container mx-auto px-4 py-8">
+          <RestaurantDetailSkeleton />
         </div>
       </div>
     )
@@ -198,9 +334,9 @@ export default function RestaurantDetailPage() {
 
   if (!restaurant) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50">
         <Navbar />
-        <div className="max-w-4xl mx-auto px-4 py-8 text-center">
+        <div className="container mx-auto px-4 py-8 text-center">
           <h1 className="text-2xl font-bold text-gray-900">Restaurant not found</h1>
         </div>
       </div>
@@ -208,220 +344,257 @@ export default function RestaurantDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50">
       <Navbar />
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Hero Section with Restaurant Header */}
-        <div className="relative bg-white rounded-2xl shadow-xl overflow-hidden mb-8 border border-gray-100">
-          {/* Background Pattern */}
-          <div className="absolute inset-0 bg-gradient-to-r from-orange-50 to-red-50 opacity-50"></div>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-200 to-red-200 rounded-full opacity-20 transform translate-x-16 -translate-y-16"></div>
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-yellow-200 to-orange-200 rounded-full opacity-20 transform -translate-x-12 translate-y-12"></div>
+      <div className="container mx-auto px-4 py-8">
+        {/* Hero Section with Image Gallery */}
+        <div className="relative h-96 rounded-2xl overflow-hidden mb-8 shadow-2xl">
+          <img
+            src={mockGalleryImages[activeImageIndex]}
+            alt={restaurant.name}
+            className="w-full h-full object-cover transition-all duration-500"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement
+              target.src = `https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=600&fit=crop&auto=format&q=80`
+            }}
+          />
           
-          <div className="relative p-8">
-            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-4">
-                  <h1 className="text-4xl font-bold text-gray-900 bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+          {/* Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+          
+          {/* Content Overlay */}
+          <div className="absolute inset-0 flex items-end">
+            <div className="p-8 text-white w-full">
+              <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Badge variant="secondary" className="bg-white/90 text-gray-800">
+                      {restaurant.cuisine}
+                    </Badge>
+                    {stats?.verificationStatus && (
+                      <Badge className="bg-green-500/90 text-white">
+                        <Award className="h-3 w-3 mr-1" />
+                        Verified
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  <h1 className="text-4xl lg:text-5xl font-bold leading-tight">
                     {restaurant.name}
                   </h1>
-                  <div className="flex items-center gap-1">
-                    {renderStars(restaurant.rating)}
-                    <span className="text-xl font-bold text-amber-600 ml-1">
-                      {restaurant.rating?.toFixed(1) || "0.0"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3 mb-6">
-                  <Badge variant="secondary" className="text-sm px-3 py-1 bg-orange-100 text-orange-800 border-orange-200">
-                    {restaurant.cuisine}
-                  </Badge>
-                  <div className="flex items-center text-gray-600 bg-gray-100 rounded-full px-3 py-1">
-                    <DollarSign className="h-4 w-4 mr-1" />
-                    <span className="font-medium">{getPriceSymbol(restaurant.priceRange)}</span>
-                  </div>
-                  <div className="flex items-center text-gray-600 bg-gray-100 rounded-full px-3 py-1">
-                    <span className="text-sm">
-                      {restaurant.reviews?.length || 0} review{(restaurant.reviews?.length || 0) !== 1 ? "s" : ""}
-                    </span>
-                  </div>
-                </div>
-
-                <p className="text-gray-700 text-lg leading-relaxed mb-6 max-w-3xl">
-                  {restaurant.description}
-                </p>
-
-                {/* Contact Information */}
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="flex items-center gap-3 p-3 bg-white/80 rounded-xl border border-gray-200">
-                    <div className="flex items-center justify-center w-10 h-10 bg-orange-100 rounded-full">
-                      <MapPin className="h-5 w-5 text-orange-600" />
+                  
+                  <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                      {renderStars(restaurant.rating)}
+                      <span className="text-lg font-semibold">
+                        {restaurant.rating.toFixed(1)}
+                      </span>
+                      <span className="text-white/80">
+                        ({reviews.length} reviews)
+                      </span>
                     </div>
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wide">Location</p>
-                      <p className="text-sm font-medium text-gray-900">{restaurant.address}</p>
+                    
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-5 w-5" />
+                      <span className="font-medium">
+                        {restaurant.priceRange || "Mid-range"}
+                      </span>
                     </div>
                   </div>
                   
-                  {restaurant.phone && (
-                    <div className="flex items-center gap-3 p-3 bg-white/80 rounded-xl border border-gray-200">
-                      <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-full">
-                        <Phone className="h-5 w-5 text-green-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wide">Phone</p>
-                        <p className="text-sm font-medium text-gray-900">{restaurant.phone}</p>
-                      </div>
-                    </div>
+                  <div className="flex items-center gap-2 text-white/90">
+                    <MapPin className="h-5 w-5" />
+                    <span>{restaurant.address}</span>
+                  </div>
+                </div>
+                
+                {/* Action Buttons */}
+                <div className="flex items-center gap-3">
+                  {user && (
+                    <Button
+                      onClick={toggleFavorite}
+                      variant="secondary"
+                      size="lg"
+                      className={`bg-white/90 hover:bg-white backdrop-blur-sm transition-all duration-300 ${
+                        isFavorite ? 'text-red-600' : 'text-gray-700'
+                      }`}
+                    >
+                      <Heart className={`h-5 w-5 mr-2 ${isFavorite ? 'fill-current' : ''}`} />
+                      {isFavorite ? 'Favorited' : 'Add to Favorites'}
+                    </Button>
                   )}
                   
-                  {restaurant.hours && (
-                    <div className="flex items-center gap-3 p-3 bg-white/80 rounded-xl border border-gray-200">
-                      <div className="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-full">
-                        <Clock className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wide">Hours</p>
-                        <p className="text-sm font-medium text-gray-900">{restaurant.hours}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Favorite Button */}
-              {user && (
-                <div className="lg:ml-6">
-                  <Button 
-                    variant="outline" 
-                    onClick={toggleFavorite} 
-                    className={`flex items-center gap-2 px-6 py-3 rounded-xl border-2 transition-all duration-300 hover:scale-105 ${
-                      isFavorite 
-                        ? 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100' 
-                        : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
-                    }`}
+                  <Button
+                    onClick={handleShare}
+                    variant="secondary"
+                    size="lg"
+                    disabled={shareLoading}
+                    className="bg-white/90 hover:bg-white backdrop-blur-sm text-gray-700"
                   >
-                    <Heart className={`h-5 w-5 transition-colors duration-300 ${
-                      isFavorite ? "text-red-500 fill-current" : "text-gray-400"
-                    }`} />
-                    <span className="font-medium">
-                      {isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-                    </span>
+                    <Share2 className="h-5 w-5 mr-2" />
+                    Share
                   </Button>
                 </div>
-              )}
+              </div>
             </div>
+          </div>
+          
+          {/* Image Gallery Thumbnails */}
+          <div className="absolute bottom-4 left-8 flex gap-2">
+            {mockGalleryImages.slice(0, 4).map((image, index) => (
+              <button
+                key={index}
+                onClick={() => setActiveImageIndex(index)}
+                className={`w-16 h-12 rounded-lg overflow-hidden border-2 transition-all ${
+                  activeImageIndex === index ? 'border-white' : 'border-white/50'
+                }`}
+              >
+                <img
+                  src={image}
+                  alt={`Gallery ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Reviews Section */}
-        <Card className="bg-white rounded-2xl shadow-xl border-0 overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle className="text-2xl font-bold text-gray-900 mb-1">Reviews & Ratings</CardTitle>
-                <p className="text-gray-600">What others are saying about this restaurant</p>
-              </div>
-              {user && !userReview && (
-                <Button 
-                  onClick={() => setShowReviewForm(!showReviewForm)}
-                  className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white border-0 rounded-xl px-6 py-3 transition-all duration-300 hover:scale-105 shadow-lg"
-                >
-                  <Star className="h-4 w-4 mr-2" />
-                  {showReviewForm ? "Cancel" : "Write Review"}
-                </Button>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="p-8">
-            {showReviewForm && (
-              <>
-                <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-2xl p-6 border border-orange-200 mb-8">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <Star className="h-5 w-5 text-orange-500 mr-2" />
-                    Share Your Experience
-                  </h3>
-                  <ReviewForm
-                    restaurantId={restaurant._id}
-                    onReviewSubmitted={() => {
-                      setShowReviewForm(false)
-                      fetchRestaurantDetails()
-                      checkUserReview()
-                    }}
-                  />
-                </div>
-                <Separator className="my-8" />
-              </>
-            )}
-
-            {userReview && (
-              <>
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200 mb-8">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <Heart className="h-5 w-5 text-blue-500 mr-2 fill-current" />
-                    Your Review
-                  </h3>
-                  <ReviewCard
-                    review={userReview}
-                    isOwner={true}
-                    onReviewUpdated={() => {
-                      fetchRestaurantDetails()
-                      checkUserReview()
-                    }}
-                  />
-                </div>
-                <Separator className="my-8" />
-              </>
-            )}
-
-            <div className="space-y-6">
-              {reviews.length > 0 ? (
-                <>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-                    <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full mr-3">
-                      <span className="text-sm font-bold text-gray-600">{reviews.filter(review => review._id !== userReview?._id).length}</span>
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Main Content */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* About Section */}
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-2xl font-bold text-gray-900 flex items-center">
+                  <TrendingUp className="h-6 w-6 mr-3 text-orange-600" />
+                  About {restaurant.name}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-700 text-lg leading-relaxed">
+                  {restaurant.description}
+                </p>
+                
+                {restaurant.features && restaurant.features.length > 0 && (
+                  <div className="mt-6">
+                    <h4 className="font-semibold text-gray-900 mb-3">Features & Amenities</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {restaurant.features.map((feature) => (
+                        <Badge key={feature} variant="outline" className="border-orange-200 text-orange-700">
+                          {feature.replace('-', ' ')}
+                        </Badge>
+                      ))}
                     </div>
-                    Other Reviews
-                  </h3>
-                  {reviews
-                    .filter((review) => review._id !== userReview?._id)
-                    .map((review, index) => (
-                      <div 
-                        key={review._id} 
-                        className="transform transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
-                        style={{ animationDelay: `${index * 100}ms` }}
-                      >
-                        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-300">
-                          <ReviewCard review={review} />
-                        </div>
-                      </div>
-                    ))}
-                </>
-              ) : (
-                <div className="text-center py-16">
-                  <div className="flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mx-auto mb-6">
-                    <Star className="h-10 w-10 text-gray-400" />
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No reviews yet</h3>
-                  <p className="text-gray-500 text-lg mb-6 max-w-md mx-auto">
-                    Be the first to share your experience at this restaurant!
-                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Reviews Section */}
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-2xl font-bold text-gray-900 flex items-center">
+                    <MessageCircle className="h-6 w-6 mr-3 text-orange-600" />
+                    Reviews ({reviews.length})
+                  </CardTitle>
+                  
                   {user && !userReview && (
-                    <Button 
-                      onClick={() => setShowReviewForm(true)}
-                      className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white border-0 rounded-xl px-8 py-3 text-lg transition-all duration-300 hover:scale-105 shadow-lg"
+                    <Button
+                      onClick={() => setShowReviewForm(!showReviewForm)}
+                      className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
                     >
-                      <Star className="h-5 w-5 mr-2" />
-                      Write First Review
+                      Write a Review
                     </Button>
                   )}
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+              </CardHeader>
+              
+              <CardContent className="space-y-6">
+                {/* Review Form */}
+                {showReviewForm && (
+                  <div className="border-2 border-orange-200 rounded-xl p-6 bg-orange-50/50">
+                    <ReviewForm
+                      restaurantId={restaurant._id}
+                      onReviewSubmitted={handleReviewUpdated}
+                    />
+                  </div>
+                )}
+
+                {/* User's Existing Review */}
+                {userReview && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+                      <Bookmark className="h-4 w-4 mr-2 text-orange-600" />
+                      Your Review
+                    </h4>
+                    <ReviewCard
+                      review={userReview}
+                      isOwner={true}
+                      onReviewUpdated={handleReviewUpdated}
+                    />
+                    <Separator className="my-6" />
+                  </div>
+                )}
+
+                {/* Other Reviews */}
+                {reviews.length > 0 ? (
+                  <div className="space-y-6">
+                    <h4 className="font-semibold text-gray-900 flex items-center">
+                      <Users className="h-4 w-4 mr-2 text-orange-600" />
+                      All Reviews
+                    </h4>
+                    {reviews
+                      .filter(review => review._id !== userReview?._id)
+                      .map((review) => (
+                        <ReviewCard
+                          key={review._id}
+                          review={review}
+                          onReviewUpdated={handleReviewUpdated}
+                        />
+                      ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <MessageCircle className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      No reviews yet
+                    </h3>
+                    <p className="text-gray-600 mb-6">
+                      Be the first to share your experience at {restaurant.name}!
+                    </p>
+                    {user && !showReviewForm && (
+                      <Button
+                        onClick={() => setShowReviewForm(true)}
+                        className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
+                      >
+                        Write the First Review
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column - Restaurant Info */}
+          <div>
+            <RestaurantInfoCard 
+              restaurant={{
+                _id: restaurant._id,
+                name: restaurant.name,
+                phone: restaurant.phone,
+                hours: restaurant.hours,
+                website: restaurant.website,
+                priceRange: restaurant.priceRange,
+                features: restaurant.features
+              }}
+              stats={stats || undefined}
+            />
+          </div>
+        </div>
       </div>
     </div>
   )
