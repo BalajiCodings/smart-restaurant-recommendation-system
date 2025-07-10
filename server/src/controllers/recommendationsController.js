@@ -46,7 +46,7 @@ export const getRecommendations = async (req, res, next) => {
       .limit(limit)
       .lean();
     } else {
-      // Fallback: top-rated restaurants
+      
       recommendations = await Restaurant.find()
         .sort({ rating: -1 })
         .limit(limit)

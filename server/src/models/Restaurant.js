@@ -10,16 +10,16 @@ const RestaurantSchema = new mongoose.Schema({
   description: { type: String },
   reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: "Review" }],
   
-  // Swiggy data fields
+  
   numberOfRatings: { type: String },
   averagePrice: { type: String },
   numberOfOffers: { type: Number, default: 0 },
   offerNames: [{ type: String }],
   area: { type: String },
   isPureVeg: { type: Boolean, default: false },
-  location: { type: String }, // City/Location
+  location: { type: String }, 
   
-  // Geolocation for nearby feature (can be added later)
+  
   coordinates: {
     type: {
       type: String,
@@ -27,7 +27,7 @@ const RestaurantSchema = new mongoose.Schema({
       default: 'Point'
     },
     coordinates: {
-      type: [Number], // [longitude, latitude]
+      type: [Number], 
       default: [0, 0]
     }
   }
@@ -35,7 +35,7 @@ const RestaurantSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Add geospatial index for location-based queries
+
 RestaurantSchema.index({ coordinates: '2dsphere' });
 RestaurantSchema.index({ location: 1 });
 RestaurantSchema.index({ area: 1 });

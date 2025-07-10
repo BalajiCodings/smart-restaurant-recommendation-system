@@ -15,7 +15,7 @@ import { validate } from "../middleware/validate.js";
 
 const router = express.Router();
 
-// ✅ Order matters: specific routes before parameterized ones
+
 router.get("/search", searchRestaurants);
 router.get("/nearby", getNearbyRestaurants);
 router.get("/locations", getLocations);

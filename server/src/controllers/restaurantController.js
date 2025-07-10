@@ -1,7 +1,7 @@
-// src/controllers/restaurantController.js
+
 import { Restaurant } from "../models/Restaurant.js";
 
-// ✅ GET /api/restaurants
+
 export const getRestaurants = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -33,7 +33,7 @@ export const getRestaurants = async (req, res, next) => {
   }
 };
 
-// ✅ GET /api/restaurants/:id
+
 export const getRestaurantById = async (req, res, next) => {
   try {
     const restaurant = await Restaurant.findById(req.params.id)
@@ -57,7 +57,7 @@ export const getRestaurantById = async (req, res, next) => {
   }
 };
 
-// ✅ POST /api/restaurants  (admin only)
+
 export const createRestaurant = async (req, res, next) => {
   try {
     const { name, cuisine, address, image, description } = req.body;
@@ -80,7 +80,7 @@ export const createRestaurant = async (req, res, next) => {
   }
 };
 
-// ✅ GET /api/restaurants/search?q=query
+
 export const searchRestaurants = async (req, res, next) => {
   try {
     const { q, cuisine, location, area, veg, sortBy = 'rating', order = 'desc' } = req.query;
@@ -90,7 +90,7 @@ export const searchRestaurants = async (req, res, next) => {
     
     const searchQuery = {};
 
-    // Text search
+    
     if (q && q.trim().length > 0) {
       const searchRegex = new RegExp(q.trim(), "i");
       searchQuery.$or = [
@@ -101,7 +101,7 @@ export const searchRestaurants = async (req, res, next) => {
       ];
     }
 
-    // Filters
+  
     if (cuisine) {
       searchQuery.cuisine = new RegExp(cuisine, "i");
     }
@@ -115,7 +115,7 @@ export const searchRestaurants = async (req, res, next) => {
       searchQuery.isPureVeg = true;
     }
 
-    // Sort options
+    
     const sortOptions = {};
     if (sortBy === 'rating') {
       sortOptions.rating = order === 'asc' ? 1 : -1;
@@ -157,7 +157,7 @@ export const searchRestaurants = async (req, res, next) => {
   }
 };
 
-// ✅ GET /api/restaurants/nearby?lat=12.9716&lng=77.5946&radius=5000
+
 export const getNearbyRestaurants = async (req, res, next) => {
   try {
     const { lat, lng, radius = 5000, limit = 20 } = req.query; // radius in meters
@@ -210,7 +210,7 @@ export const getNearbyRestaurants = async (req, res, next) => {
   }
 };
 
-// ✅ GET /api/restaurants/locations - Get all unique locations
+
 export const getLocations = async (req, res, next) => {
   try {
     const locations = await Restaurant.distinct('location');
@@ -229,7 +229,7 @@ export const getLocations = async (req, res, next) => {
   }
 };
 
-// ✅ GET /api/restaurants/cuisines - Get all unique cuisines
+
 export const getCuisines = async (req, res, next) => {
   try {
     const cuisines = await Restaurant.distinct('cuisine');
