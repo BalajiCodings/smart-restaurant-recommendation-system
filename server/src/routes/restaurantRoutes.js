@@ -1,13 +1,25 @@
 import express from "express";
 import { body } from "express-validator";
-import { getRestaurants, getRestaurantById, createRestaurant, searchRestaurants } from "../controllers/restaurantController.js";
+import { 
+  getRestaurants, 
+  getRestaurantById, 
+  createRestaurant, 
+  searchRestaurants,
+  getNearbyRestaurants,
+  getLocations,
+  getCuisines
+} from "../controllers/restaurantController.js";
 import { getRecommendations } from "../controllers/recommendationsController.js";
 import { authenticate, requireRole } from "../middleware/authMiddleware.js";
 import { validate } from "../middleware/validate.js";
 
 const router = express.Router();
 
+// ✅ Order matters: specific routes before parameterized ones
 router.get("/search", searchRestaurants);
+router.get("/nearby", getNearbyRestaurants);
+router.get("/locations", getLocations);
+router.get("/cuisines", getCuisines);
 router.get("/recommendations", authenticate, getRecommendations);
 router.get("/", getRestaurants);
 router.get("/:id", getRestaurantById);
